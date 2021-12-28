@@ -14,15 +14,19 @@ class Parameter:
     text_cleaners = ["transliteration_cleaners"]
     cmudict_path  = "data/cmu_dictionary"
     
-    train = "filelists/train.txt"
-    val   = "filelists/val.txt"
+    train   = "filelists/train.txt"
+    val     = "filelists/val.txt"
+    combine = "filelists/combine.txt"
     
     load_from_numpy   = True
-    use_spk_emb       = False
+
+@dataclass    
+class Use_Speaker:
+    use_spk_emb       = True
     use_spk_table     = False
-    add_spk_to_prenet = False
-    
-    spk_emb = None
+    add_spk_to_prenet = True
+
+    spk_emb = "128_aishell" # or None
 
 @dataclass
 class Optimizer:
@@ -31,7 +35,7 @@ class Optimizer:
     grad_clip_thresh = 1.0
     
 @dataclass
-class Model(Parameter):
+class Model(Use_Speaker):
     # Init model
     mask_padding  = True
     mel_channels  = 80
@@ -39,12 +43,12 @@ class Model(Parameter):
     symbols_embedding = 512
     encoder_linear    = 64
     num_heads         = 2
-    n_spk             = 2
+    n_spk             = 2000
     spk_emb_in        = 128
     spk_emb_out       = 128
     
 @dataclass
-class Encoder(Model):
+class Encoder:
     embedding       = 512
     n_convolutions  = 3
     kernel_size     = 5

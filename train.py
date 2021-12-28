@@ -29,7 +29,7 @@ def parse_batch(batch: Tuple) -> Tuple:
     mel_padded = torch.autograd.Variable(mel_padded.contiguous().cuda(non_blocking=True)).float()
     gate_padded = torch.autograd.Variable(gate_padded.contiguous().cuda(non_blocking=True)).float()
     if speaker is not None:
-        speaker = torch.autograd.Variable(speaker.contiguous().cuda(non_blocking=True)).float()
+        speaker = torch.autograd.Variable(speaker.contiguous().cuda(non_blocking=True)).long()
     output_lengths = torch.autograd.Variable(output_lengths.contiguous().cuda(non_blocking=True)).long()
     return ((text_padded, input_lengths, mel_padded, max_len, output_lengths, speaker),
             (mel_padded, gate_padded),
@@ -70,7 +70,7 @@ def main(output_dir: str, log_dir: str, checkpoint_path: str, warm_start: bool):
     
     writer = SummaryWriter(Path(output_dir, log_dir))
     
-    train_set = DataSet(Parameter, Parameter.train)
+    train_set = DataSet(Parameter.train)
     train_collate = DataCollate()
     train_loader = DataLoader(
                               train_set, num_workers=os.cpu_count() // 2,
@@ -78,7 +78,7 @@ def main(output_dir: str, log_dir: str, checkpoint_path: str, warm_start: bool):
                              )
     train_iter = infinite_iterator(train_loader)
     
-    val_set = DataSet(Parameter, Parameter.val)
+    val_set = DataSet(Parameter.val)
     val_collate = DataCollate()
     val_loader = DataLoader(
                             val_set, num_workers=1,

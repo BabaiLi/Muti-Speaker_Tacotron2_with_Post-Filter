@@ -32,7 +32,7 @@ def main(checkpoint_path: str):
     torch.manual_seed(Parameter.seed)
     torch.cuda.manual_seed(Parameter.seed)
     
-    data_path = Path('filelists/total.txt')
+    data_path = Path(Parameter.combine)
     with open(data_path, 'r') as f:
         txt = f.readlines()
     

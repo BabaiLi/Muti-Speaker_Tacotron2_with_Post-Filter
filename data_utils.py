@@ -6,24 +6,28 @@ import torch
 from torch.utils.data import Dataset
 
 from text import text_to_sequence, cmudict
+from config import Use_Speaker, Parameter
 
 class DataSet(Dataset):
-    def __init__(self, config: Dict, data_path: str):
+    def __init__(self, data_path: str):
         self.data_dir = data_path
-        self.text_cleaners = config.text_cleaners
+        
+        self.use_spk_emb   = Use_Speaker.use_spk_emb
+        self.use_spk_table = Use_Speaker.use_spk_table
+        
+        self.text_cleaners = Parameter.text_cleaners
         self.cmudict = None
-        self.use_spk_emb = config.use_spk_emb
-        self.load_from_numpy = config.load_from_numpy
-        if config.cmudict_path is not None:
-            self.cmudict = cmudict.CMUDict(config.cmudict_path)
+        if Parameter.cmudict_path is not None:
+            self.cmudict = cmudict.CMUDict(Parameter.cmudict_path)
+            
+        self.load_from_numpy = Parameter.load_from_numpy
+        if Use_Speaker.spk_emb is not None:
+            self.spk_emb = torch.load(Use_Speaker.spk_emb)
         
         with open(data_path, encoding='utf-8') as f:
             self.meta_data = [line.strip() for line in f]
-            
-        if config.spk_emb is not None:
-            self.spk_emb = torch.load(Parameter.spk_emb)
         
-        random.seed(config.seed)
+        random.seed(Parameter.seed)
         random.shuffle(self.meta_data)
     
     def get_text(self, text):
@@ -38,7 +42,7 @@ class DataSet(Dataset):
         if check == 3:
             audiopath, text, ids = self.meta_data[index].split('|')
             if self.use_spk_emb:
-                ids = self.spk_emb[ids]
+                ids = torch.IntTensor([int(ids)]) if self.use_spk_table else self.spk_emb[ids]
             else:
                 ids = None
         elif check == 2:
@@ -58,8 +62,7 @@ class DataSet(Dataset):
 class DataCollate():
     def __init__(self):
         self.n_frames_per_step = 1
-        
-        
+          
     def __call__(self, data):
         input_lengths, ids_sorted_decreasing = torch.sort(
             torch.LongTensor([len(x[0]) for x in data]),
@@ -85,7 +88,10 @@ class DataCollate():
         mel_padded = torch.zeros(len(data), num_mels, max_target_len)
         gate_padded = torch.zeros(len(data), max_target_len)
         output_lengths = torch.LongTensor(len(data))
-        speaker = torch.zeros(len(data), 128)
+        if data[0][2].size(-1) == 1:
+            speaker = torch.zeros(len(data), 1)
+        elif data[0][2].size(-1) == 128:
+            speaker = torch.zeros(len(data), 128)
         
         for i in range(len(ids_sorted_decreasing)):
             mel = data[ids_sorted_decreasing[i]][1]

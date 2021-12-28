@@ -12,10 +12,10 @@ from Diff.inference import predict as diff_predict
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-c', '--checkpoint_path',type=str, default='outdir/checkpoint_100000',   help='Type iterations')
-parser.add_argument('-d', '--diff_model',     type=str, default=None, help='Type roman pinyin')
-parser.add_argument('-s', '--speaker',        type=str, default=None,        help='choose speaker ID')
-parser.add_argument('-e', '--use_extern_spk', type=str, default=None,          help='Type where wav_path')
+parser.add_argument('-c', '--checkpoint_path',type=str, default='outdir/checkpoint_100000', help='Type where checkpoint is')
+parser.add_argument('-d', '--diff_model',     type=str, default=None, help='Type where diff_model is')
+parser.add_argument('-s', '--speaker',        type=str, default=None, help='choose speaker ID')
+parser.add_argument('-e', '--use_extern_spk', type=str, default=None, help='Type where wav_path is')
 args = parser.parse_args()
 
 from HiFi_GAN.hifigan import Generator
@@ -101,12 +101,12 @@ for i in txt:
         if args.diff_model is not None:
             mel, sr = diff_predict(mel, model_dir=args.diff_model, fast_sampling=False)
             storge.append(mel)
+            method.append('_pf_')
             mel = torch.clamp(mel, -0.2, 0.95)
             mel = mel * 100 - 100
             mel = (mel + 20) / 20
             mel = 10**mel
             mel = torch.log(mel)
-            method.append('_pf_')
         dir_name = args.speaker
         while len(dir_name) != 4:
             dir_name = '0' + dir_name

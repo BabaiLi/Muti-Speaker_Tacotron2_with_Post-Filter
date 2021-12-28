@@ -1,5 +1,5 @@
 from math import sqrt
-from config import Model, Encoder, Decoder
+from config import Model, Encoder, Decoder, Use_Speaker
 from typing import Dict, Tuple, List, Optional
 
 import torch
@@ -221,7 +221,7 @@ class Encoder(nn.Module):
 
 
     def forward(self, x: Tensor, input_lengths: Tensor) -> Tensor:
-                
+
         if x.size()[0] > 1:
             x_embedded = []
             for b_ind in range(x.size()[0]):  # Speed up
@@ -272,13 +272,13 @@ class Decoder(nn.Module):
         self.max_decoder_steps = config.max_decoder_steps
         self.gate_threshold    = config.gate_threshold
         
-        if config.use_spk_emb:
+        if Use_Speaker.use_spk_emb:
             self.embedding      += config.spk_emb_out
             self.encoder_linear += config.spk_emb_out
         
         self.dim = config.decoder_rnn_dim + self.embedding + self.encoder_linear
 
-        self.prenet = Prenet(config.mel_channels, config.prenet_dim, config.spk_emb_out, config.use_spk_emb)
+        self.prenet = Prenet(config.mel_channels, config.prenet_dim, config.spk_emb_out, Use_Speaker.use_spk_emb)
 
         self.attention_rnn = nn.LSTMCell(
             self.embedding + self.encoder_linear + config.prenet_dim,
@@ -486,10 +486,11 @@ class Tacotron2(nn.Module):
         super(Tacotron2, self).__init__()
         self.mask_padding   = config.mask_padding
         self.n_mel_channels = config.mel_channels
-        self.use_spk_emb    = config.use_spk_emb
+        self.use_spk_emb    = Use_Speaker.use_spk_emb
+        self.use_spk_table  = Use_Speaker.use_spk_table
         
-        self.embedding = nn.Embedding(symbols, config.symbols_embedding)
-        std = sqrt(2.0 / (symbols + config.symbols_embedding))
+        self.embedding = nn.Embedding(symbols + 1, config.symbols_embedding)
+        std = sqrt(2.0 / (symbols + 1 + config.symbols_embedding))
         val = sqrt(3.0) * std  # uniform bounds for std
         self.embedding.weight.data.uniform_(-val, val)
         
@@ -500,9 +501,9 @@ class Tacotron2(nn.Module):
         self.encoder_proj   = LinearNorm(config.symbols_embedding, config.encoder_linear)
         self.multihead_attn = nn.MultiheadAttention(config.encoder_linear, config.num_heads)
         
-        if config.use_spk_emb:
-            if config.use_spk_table: # If True, use Speaker ID Table.
-                self.spk_proj = nn.Embedding(config.n_spk, config.spk_emb_out)
+        if self.use_spk_emb:
+            if self.use_spk_table: # If True, use Speaker ID Table.
+                self.spk_proj = nn.Embedding(config.n_spk + 1, config.spk_emb_out)
             else:                    # If False, use external Speaker Embedding.
                 self.spk_proj = LinearNorm(config.spk_emb_in, config.spk_emb_out)
                 
@@ -512,13 +513,19 @@ class Tacotron2(nn.Module):
         else:
             text_inputs, text_lengths, mels, max_len, output_lengths, speaker = inputs
             speaker = None
-            
+
         text_lengths, output_lengths = text_lengths.data, output_lengths.data
         
         # Fit the Speaker Embedding with Model.
         if self.use_spk_emb:
+            if not self.use_spk_table:
+                speaker = speaker.float()
+                
             speaker = speaker.unsqueeze(1)
-            speaker = self.spk_proj(speaker)
+            speaker = self.spk_proj(speaker).float()
+            
+            if len(speaker.shape) > 3:
+                speaker = speaker.view(speaker.size(0), 1, -1)
 
         # Text -> Embedding -> Encoder
         embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
@@ -559,8 +566,14 @@ class Tacotron2(nn.Module):
     
         # Fit the Speaker Embedding with Model.
         if self.use_spk_emb:
+            if not self.use_spk_table:
+                speaker = speaker.float()
+                
             speaker = speaker.unsqueeze(0)
-            speaker = self.spk_proj(speaker)
+            speaker = self.spk_proj(speaker).float()
+            
+            if len(speaker.shape) > 3:
+                speaker = speaker.view(speaker.size(0), 1, -1)
         
         # Text -> Embedding -> Encoder
         embedded_inputs = self.embedding(inputs).transpose(1, 2)
