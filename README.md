@@ -1,9 +1,5 @@
 # Muti-Speaker_Tacotron2_with_Post-Filter
 
-# 進入Tacotron 2資料夾
-```
-cd Tacotron2
-```
 # 從WAV檔案抓取梅爾頻譜
 ```
 python3 extract_mel_util.py <input> --output_dir <output_path> # -> target_dirs
