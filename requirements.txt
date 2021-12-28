@@ -1,0 +1,9 @@
+inflect
+unidecode
+librosa
+matplotlib
+numpy
+soundfile
+torch
+tqdm
+torchaudio
