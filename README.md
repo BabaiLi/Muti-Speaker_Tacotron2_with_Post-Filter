@@ -47,8 +47,5 @@ python3 train.py <output> --mel_dirs <mel_dirs> --target_dirs <target_dirs>
 # Inference, 音檔存在inference資料夾內
 ## 回到Tacotron 2資料夾
 ```
-python3 inference.py -i <iteration> -d <Diff/output> -s <speaker> -e <audio_path>
-                       # 輸入step數      輸入Diff模      輸入語者    從外部音檔
-                       # 即可            型輸出位置      編號，若    抓取Embedding
-                       #                                 無可忽視
+python3 inference.py -c <checkpoint_path> -d <Diff/output> -s <speaker> -e <audio_path>
 ```
