@@ -13,7 +13,7 @@ from Diff.inference import predict as diff_predict
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--checkpoint_path',type=str, default='outdir/checkpoint_100000',   help='Type iterations')
-parser.add_argument('-d', '--diff_model',     type=str, default='Diff/output', help='Type roman pinyin')
+parser.add_argument('-d', '--diff_model',     type=str, default=None, help='Type roman pinyin')
 parser.add_argument('-s', '--speaker',        type=str, default=None,        help='choose speaker ID')
 parser.add_argument('-e', '--use_extern_spk', type=str, default=None,          help='Type where wav_path')
 args = parser.parse_args()
@@ -90,23 +90,27 @@ for i in txt:
     text_cleaners = Parameter.text_cleaners
     sequence = torch.LongTensor(text_to_sequence(t, text_cleaners, arpabet_dict)).unsqueeze(0).cuda()
     
+    method = ['_pn_']
+    storge = []
     with torch.no_grad():
         mel_outputs, _, alignments, self_alignments = model.inference(sequence, speaker)
+        storge.append(mel_outputs)
         mel = torch.exp(mel_outputs)
         mel = torch.log10(mel) * 20 - 20
         mel = (mel + 100) / 100
-        mel, sr = diff_predict(mel, model_dir=args.diff_model, fast_sampling=False)
-        mel = torch.clamp(mel, -0.2, 0.95)
-        mel = mel * 100 - 100
-        mel = (mel + 20) / 20
-        mel = 10**mel
-        mel = torch.log(mel)
-        storge = [mel, mel_outputs]
-        method = ['_pf_', '_pn_']
+        if args.diff_model is not None:
+            mel, sr = diff_predict(mel, model_dir=args.diff_model, fast_sampling=False)
+            storge.append(mel)
+            mel = torch.clamp(mel, -0.2, 0.95)
+            mel = mel * 100 - 100
+            mel = (mel + 20) / 20
+            mel = 10**mel
+            mel = torch.log(mel)
+            method.append('_pf_')
         dir_name = args.speaker
         while len(dir_name) != 4:
             dir_name = '0' + dir_name
-        for i in range(2):
+        for i in range(len(storge)):
             y_g_hat = generator(storge[i]).squeeze()
             audio = y_g_hat * 32767.0
             audio = audio.cpu().numpy().astype('int16')
