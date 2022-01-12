@@ -122,7 +122,8 @@ def main(output_dir: str, log_dir: str, checkpoint_path: str, warm_start: bool):
     model.train()
     
     for step in pbar:
-        align_w = 0.01 if step > 25000 else 0.0
+        #align_w = 0.01 if step > 25000 else 0.0
+        align_w = 0.0
 
         start = time.perf_counter()
         model.zero_grad()
