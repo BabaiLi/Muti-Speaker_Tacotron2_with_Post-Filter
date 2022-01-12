@@ -5,7 +5,7 @@ class Parameter:
     batch = 8
     seed  = 1234
     
-    total_steps    = 100000
+    total_steps    = 200000
     save_per_iters = 1000
     
     use_saved_learning_rate = False
